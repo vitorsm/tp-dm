@@ -9,16 +9,21 @@ line_ident = '<li class="item" data-list_id="'
 url_ident = 'href="'
 page_amount_ident = '<span style="color: #999;font-weight: 400;">1 - '
 
-car_motor_ident = '<span class="term">Potência do motor:</span>'
-car_steering_ident = '<span class="term">Direção:</span>'
+car_motor_ident = '<span class="term">Pot\\xeancia do motor:</span>'
+car_steering_ident = '<span class="term">Dire\\xe7\\xe3o:</span>'
 car_color_ident = '<span class="term">Cor:</span>'
-car_only_owner_ident = '<span class="term">Único dono:</span>'
+car_only_owner_ident = '<span class="term">\\xdanico dono:</span>'
+car_type_ident = '<span class="term">Tipo de ve\\xedculo:</span>'
+car_price_ident = 'template_vars.price = "'
 car_params_ident = 'self.adParams = '
 
 begin_description_attribute_ident = '<strong class="description">'
 
+# states = ['mg', 'sp', 'rj', 'es']
+states = ['sp', 'rj', 'es']
 
-states = ['mg', 'sp', 'rj', 'es', 'rs', 'sc', 'pr']
+separator_csv_file = ';'
+
 # page_text = "pagina web"
 
 def get_car_url(page_text):
@@ -47,6 +52,7 @@ def get_car_url(page_text):
 
     return page_text, url_link
 
+
 def get_page(state, page_index):
     url_send = str.format(url, state, page_index)
 
@@ -56,12 +62,14 @@ def get_page(state, page_index):
 
     return content
 
+
 def get_car_page(url):
     response, content = h.request(url)
 
     content = str(content)
 
     return content
+
 
 def get_max_page(page_text):
     index = page_text.find(page_amount_ident)
@@ -80,7 +88,6 @@ def get_max_page(page_text):
 
     amount_pages = float(amount_items_str) / float(amount_per_page_str)
 
-
     if amount_pages < 10:
         amount_pages *= 1000
 
@@ -93,8 +100,15 @@ def get_max_page(page_text):
 
 
 def get_car_data(page_text):
-    print(page_text)
+    page_text = page_text.replace("\\n", "")
+    page_text = page_text.replace("\\t", "")
+
     index = page_text.find(car_params_ident)
+
+    if index < 0:
+        return None, None
+
+
     index += len(car_params_ident)
     data_str = page_text[index:]
 
@@ -107,74 +121,103 @@ def get_car_data(page_text):
     data_str = data_str.strip()
     data_str = str(data_str)
 
-    print("str data: " + data_str)
-    data = json.loads(data_str)
+    try:
+        data = json.loads(data_str)
+    except:
+        return None, None
+
+    if 'mileage' not in data or 'brand' not in data:
+        return None, None
 
     index = page_text.find(car_motor_ident)
-    print("motor: " + str(index))
+    data['motor'] = None
     if index >= 0:
         index += len(car_motor_ident)
-        page_text = page_text[index:]
-        index = page_text.find(begin_description_attribute_ident)
+        sub_page_text = page_text[index:]
+        index = sub_page_text.find(begin_description_attribute_ident)
         index += len(begin_description_attribute_ident)
-        page_text = page_text[index:]
-        index = page_text.find('<')
-        data['motor'] = page_text[:index]
+        sub_page_text = sub_page_text[index:]
+        index = sub_page_text.find('<')
+        data['motor'] = sub_page_text[:index]
         data['motor'] = data['motor'].replace("\\n", '')
         data['motor'] = data['motor'].replace("\\t", '')
         data['motor'] = data['motor'].replace("\\", '')
-        print(data['motor'])
-        page_text = page_text[index:]
+        # page_text = page_text[index:]
 
     index = page_text.find(car_steering_ident)
-    print("steering: " + str(index))
+    data['steering'] = None
     if index >= 0:
         index += len(car_steering_ident)
-        page_text = page_text[index:]
-        index = page_text.find(begin_description_attribute_ident)
+        sub_page_text = page_text[index:]
+        index = sub_page_text.find(begin_description_attribute_ident)
         index += len(begin_description_attribute_ident)
-        page_text = page_text[:index]
-        index = page_text.find('<')
-        data['steering'] = page_text[:index]
+        sub_page_text = sub_page_text[index:]
+        index = sub_page_text.find('<')
+        data['steering'] = sub_page_text[:index]
         data['steering'] = data['steering'].replace("\\n", '')
         data['steering'] = data['steering'].replace("\\t", '')
         data['steering'] = data['steering'].replace("\\", '')
-        print(data['steering'])
-        page_text = page_text[index:]
+        # page_text = page_text[index:]
 
     index = page_text.find(car_color_ident)
-    print("color: " + str(index))
+    data['color'] = None
     if index >= 0:
         index += len(car_color_ident)
-        page_text = page_text[index:]
-        index = page_text.find(begin_description_attribute_ident)
+        sub_page_text = page_text[index:]
+        index = sub_page_text.find(begin_description_attribute_ident)
         index += len(begin_description_attribute_ident)
-        page_text = page_text[:index]
-        index = page_text.find('<')
-        data['color'] = page_text[:index]
+        sub_page_text = sub_page_text[index:]
+        index = sub_page_text.find('<')
+        data['color'] = sub_page_text[:index]
         data['color'] = data['color'].replace("\\n", '')
         data['color'] = data['color'].replace("\\t", '')
         data['color'] = data['color'].replace("\\", '')
-        print(data['color'])
-        page_text = page_text[index:]
+        # page_text = page_text[index:]
 
     index = page_text.find(car_only_owner_ident)
-    print("only_owner: " + str(index))
+    data['only_owner'] = None
     if index >= 0:
         index += len(car_only_owner_ident)
-        page_text = page_text[index:]
-        index = page_text.find(begin_description_attribute_ident)
+        sub_page_text = page_text[index:]
+        index = sub_page_text.find(begin_description_attribute_ident)
         index += len(begin_description_attribute_ident)
-        page_text = page_text[:index]
-        index = page_text.find('<')
-        data['only_owner'] = page_text[:index]
+        sub_page_text = sub_page_text[index:]
+        index = sub_page_text.find('<')
+        data['only_owner'] = sub_page_text[:index]
         data['only_owner'] = data['only_owner'].replace("\\n", '')
         data['only_owner'] = data['only_owner'].replace("\\t", '')
         data['only_owner'] = data['only_owner'].replace("\\", '')
-        print(data['only_owner'])
-        page_text = page_text[index:]
+        # page_text = page_text[index:]
 
-    return data
+    index = page_text.find(car_type_ident)
+    data['type'] = None
+    if index >= 0:
+        index += len(car_type_ident)
+        sub_page_text = page_text[index:]
+        index = sub_page_text.find(begin_description_attribute_ident)
+        index += len(begin_description_attribute_ident)
+        sub_page_text = sub_page_text[index:]
+        index = sub_page_text.find('<')
+        data['type'] = sub_page_text[:index]
+        data['type'] = data['type'].replace("\\n", '')
+        data['type'] = data['type'].replace("\\t", '')
+        data['type'] = data['type'].replace("\\", '')
+
+    index = page_text.find(car_price_ident)
+    data['price'] = None
+    if index >= 0:
+        index += len(car_price_ident)
+        sub_page_text = page_text[index:]
+        index = sub_page_text.find('"')
+        data['price'] = sub_page_text[:index]
+
+    extras = []
+    if data['extra'] != '':
+        extras = data['extra'].split(', ')
+
+
+    return data, extras
+
 
 ### .......... Begin main method .......... ###
 
@@ -186,15 +229,217 @@ def get_car_data(page_text):
 # print(json_dict['version'])
 # print(json_dict['fuel'])
 
-for state in states:
-    page_text = get_page(state, 1)
-    pages_amount = get_max_page(page_text)
+def concatExtrasFile(extras):
+    if extras == None:
+        return
 
-    page_text, car_url = get_car_url(page_text)
+    extras_file = open('extras-file.csv', 'r+')
+    text = extras_file.read()
+    extrasSaved = None
+    if text != None and text != '':
+        extrasSaved = text.split(separator_csv_file)
 
-    page_text_car = get_car_page(car_url)
+    for extra in extras:
+        if extrasSaved == None or extra not in extrasSaved:
+            extras_file.write(extra + separator_csv_file)
 
-    data_car = get_car_data(page_text_car)
-    print(data_car)
-    break
+def concatCarsFile(cars_file, car_data, state, car_url):
+    cars_file.write('\r\n')
 
+    void_str = ''
+
+    if car_data['brand'] != None:
+        cars_file.write(car_data['brand'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['model'] != None:
+        cars_file.write(car_data['model'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    cars_file.write(state + separator_csv_file)
+
+    if car_data['color'] != None:
+        cars_file.write(car_data['color'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['mileage'] != None:
+        cars_file.write(car_data['mileage'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['end_tag'] != None:
+        cars_file.write(car_data['end_tag'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['fuel'] != None:
+        cars_file.write(car_data['fuel'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['year'] != None:
+        cars_file.write(car_data['year'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['gearbox'] != None:
+        cars_file.write(car_data['gearbox'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['only_owner'] != None:
+        cars_file.write(car_data['only_owner'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['type'] != None:
+        cars_file.write(car_data['type'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['version'] != None:
+        cars_file.write(car_data['version'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['steering'] != None:
+        cars_file.write(car_data['steering'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['doors'] != None:
+        cars_file.write(car_data['doors'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['extra'] != None:
+        cars_file.write(car_data['extra'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    if car_data['price'] != None:
+        cars_file.write(car_data['price'] + separator_csv_file)
+    else:
+        cars_file.write(void_str + separator_csv_file)
+
+    cars_file.write(car_url + separator_csv_file)
+
+
+extras_file = open('extras-file.csv', 'a')
+cars_file = open('cars-file.csv', 'a')
+
+extras_file = open('extras-file.csv', 'r+')
+cars_file = open('cars-file.csv', 'r+')
+dataset_file = open('dataset.csv', 'w+')
+
+text = cars_file.read()
+
+# if text == None or text == '':
+#     cars_file.write('marca' + separator_csv_file)
+#     cars_file.write('modelo' + separator_csv_file)
+#     cars_file.write('estado' + separator_csv_file)
+#     cars_file.write('cor' + separator_csv_file)
+#     cars_file.write('quilometragem' + separator_csv_file)
+#     cars_file.write('end_tag' + separator_csv_file)
+#     cars_file.write('combustivel' + separator_csv_file)
+#     cars_file.write('ano' + separator_csv_file)
+#     cars_file.write('cambio' + separator_csv_file)
+#     cars_file.write('unico_dono' + separator_csv_file)
+#     cars_file.write('tipo' + separator_csv_file)
+#     cars_file.write('versao' + separator_csv_file)
+#     cars_file.write('direcao' + separator_csv_file)
+#     cars_file.write('portas' + separator_csv_file)
+#     cars_file.write('extra' + separator_csv_file)
+#     cars_file.write('preco' + separator_csv_file)
+#
+#
+# count = 0
+# for i, state in enumerate(states):
+#     page_text = get_page(state, 1)
+#     pages_amount = get_max_page(page_text)
+#
+#     for page_index in range(1, pages_amount):
+#         page_text = get_page(state, page_index)
+#
+#         for item_index in range(50):
+#             page_text, car_url = get_car_url(page_text)
+#             if page_text == None:
+#                 break
+#             else:
+#                 print(car_url)
+#                 page_text_car = get_car_page(car_url)
+#
+#                 if page_text_car != None:
+#                     car_data, extras = get_car_data(page_text_car)
+#                     if car_data != None and extras != None:
+#                         concatExtrasFile(extras)
+#                         concatCarsFile(cars_file, car_data, state, car_url)
+#                         count += 1
+#
+#                 print("baixou " + str(count) + " itens")
+#
+
+extras_file = open('extras-file.csv', 'r')
+cars_file = open('cars-file.csv', 'r')
+
+extras = extras_file.read().split(separator_csv_file)
+
+
+dataset_file.write('marca' + separator_csv_file)
+dataset_file.write('modelo' + separator_csv_file)
+dataset_file.write('estado' + separator_csv_file)
+dataset_file.write('cor' + separator_csv_file)
+dataset_file.write('quilometragem' + separator_csv_file)
+dataset_file.write('end_tag' + separator_csv_file)
+dataset_file.write('combustivel' + separator_csv_file)
+dataset_file.write('ano' + separator_csv_file)
+dataset_file.write('cambio' + separator_csv_file)
+dataset_file.write('unico_dono' + separator_csv_file)
+dataset_file.write('tipo' + separator_csv_file)
+dataset_file.write('versao' + separator_csv_file)
+dataset_file.write('direcao' + separator_csv_file)
+dataset_file.write('portas' + separator_csv_file)
+for extra in extras:
+    if extra != '':
+        dataset_file.write(extra + separator_csv_file)
+dataset_file.write('preco' + separator_csv_file)
+
+text_cars_file_line = cars_file.read().split('\n')
+print(text_cars_file_line)
+
+for i, line in enumerate(text_cars_file_line):
+    print(i)
+    if i > 0:
+        dataset_file.write('\r\n')
+        columns = line.split(separator_csv_file)
+
+        if len(columns) >= 17:
+            dataset_file.write(columns[0] + separator_csv_file)
+            dataset_file.write(columns[1] + separator_csv_file)
+            dataset_file.write(columns[2] + separator_csv_file)
+            dataset_file.write(columns[3] + separator_csv_file)
+            dataset_file.write(columns[4] + separator_csv_file)
+            dataset_file.write(columns[5] + separator_csv_file)
+            dataset_file.write(columns[6] + separator_csv_file)
+            dataset_file.write(columns[7] + separator_csv_file)
+            dataset_file.write(columns[8] + separator_csv_file)
+            dataset_file.write(columns[9] + separator_csv_file)
+            dataset_file.write(columns[10] + separator_csv_file)
+            dataset_file.write(columns[11] + separator_csv_file)
+            dataset_file.write(columns[12] + separator_csv_file)
+            dataset_file.write(columns[13] + separator_csv_file)
+
+
+            car_extras = columns[14].split(', ')
+            for extra in extras:
+                if extra != '':
+                    if extra in car_extras:
+                        dataset_file.write('1' + separator_csv_file)
+                    else:
+                        dataset_file.write('0' + separator_csv_file)
+
+            dataset_file.write(columns[15] + separator_csv_file)
+            dataset_file.write(columns[16] + separator_csv_file)
